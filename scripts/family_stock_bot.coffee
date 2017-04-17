@@ -11,6 +11,7 @@
 #
 # Commands:
 #   hubot 在庫 - 家の在庫情報を返します。
+#   hubot 在庫詳細 - 家の在庫情報を返します(詳細)。
 #   hubot 在庫変更 <商品名> <個数> - 家の在庫情報を引数の個数で増減させます。(減らしたい時はマイナス値を。)
 #
 # Author:
@@ -32,7 +33,10 @@ module.exports = (robot) ->
 
   getZaiko = (res) ->
     # 通常、[@hubot 在庫] がはいってくるので、zaiko/在庫で「おわるもの」を検索
-    console.log "["+res.match[0]+"]"
+    input = res.match[0]
+    console.log "["+input+"]"
+    console.log /(詳細)$/.test(input)
+
     options =
       url: url
       method: "POST"
@@ -44,12 +48,14 @@ module.exports = (robot) ->
 #   bodyは本文文字かな
       console.log body
       obj = JSON.parse body
-      message = ""
-      for value, index in  obj
-        message += [value[0],value[1],value[6],value[7]].join('\t')
-        message += '\n'
 
-      message += ["\n",bot_config.gas_document_url,"\n"].join('');
+      message = ""
+      # 詳細 / detail とかでおわる文字の場合
+      if /(詳細|detail)$/.test(input)
+        message = createDetailMessage obj
+      else
+        message = createMessage obj
+
       res.send message
 
 
@@ -69,5 +75,30 @@ module.exports = (robot) ->
         getZaiko res
 
 
+  # message作成
+  createMessage = (obj)->
+    message = ""
+    for value, index in  obj
+      message += [value[1],value[6]].join('\t')
+      message += '\n'
+
+    message += ["\n",bot_config.gas_document_url,"\n"].join('');
+    return message
+
+
+
+  # 詳細 message作成
+  createDetailMessage = (obj) ->
+    message = ""
+    for value, index in  obj
+      message += [value[0],value[1],value[6],value[7]].join('\t')
+      message += '\n'
+
+    message += ["\n",bot_config.gas_document_url,"\n"].join('');
+    return message
+
+
+
   robot.respond /(在庫|zaiko)$/i, getZaiko
+  robot.respond /(在庫詳細|zaikodetail)$/i, getZaiko
   robot.respond /(在庫変更|zaikohenko|zaikohenkou) (.*) (.*)/i, updateZaiko
