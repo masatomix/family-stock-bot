@@ -56,6 +56,8 @@ module.exports = (robot) ->
       else
         message = createMessage obj
 
+      message += '\n'
+      message += createHokyuMessage obj
       res.send message
 
 
@@ -97,6 +99,21 @@ module.exports = (robot) ->
     message += ["\n",bot_config.gas_document_url,"\n"].join('');
     return message
 
+
+  # message作成
+  createHokyuMessage = (obj)->
+    message = ""
+    flag = false
+    for value, index in  obj
+#      在庫がなかったら
+      if value[6]==0
+        flag = true
+        message += [value[1],value[7]].join('\t')
+        message += '\n'
+
+    if flag
+      message = "以下は、在庫がないため購入した方がよいですよー\n" + message
+    return message
 
 
   robot.respond /(在庫|zaiko)$/i, getZaiko
