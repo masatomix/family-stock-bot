@@ -5,8 +5,10 @@
   "author": "masatomix",
   "description": "family stock bot",
   "dependencies": {
+    "aws-sdk": "^2.45.0",
     "config": "^1.25.1",
     "hubot": "^2.19.0",
+    "hubot-conversation": "^1.1.1",
     "hubot-diagnostics": "0.0.1",
     "hubot-google-images": "^0.2.6",
     "hubot-google-translate": "^0.2.0",
