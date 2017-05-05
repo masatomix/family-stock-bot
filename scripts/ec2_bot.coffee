@@ -30,35 +30,15 @@ module.exports = (robot) ->
 
   conversation = new Conversation(robot)
 
+  conditions = {'起動': {'key': 0, 'value': '起動'}, '停止': {'key': 1, 'value': '停止'}}
+
   robot.respond /サーバ起動/i, (res) ->
     dialog = conversation.startDialog res, 60000; # timeout = 1min
     dialog.timeout = (res) ->
       res.emote('タイムアウトです')
 
     # 対話形式スタート
-    input_instanceId res, dialog
-
-  input_instanceId = (res, dialog) ->
-    res.send "サーバの起動コマンドを受信しました。インスタンスIDを教えてください。[instanceId を入力] もしくは[やめる]"
-
-    dialog.addChoice /やめる/, (res2)->
-      res2.send 'わかりました。起動するのはやめます。'
-
-    dialog.addChoice /(.*)/, (res2)->
-      instanceId = res2.match[1].split(' ')[1] # なんかバグってる気がする
-      confirm instanceId, res2, dialog
-
-
-  confirm = (instanceId, res, dialog)->
-    res.send "#{instanceId} のインスタンスを起動します。よろしいでしょうか？[はい,ok,yes,いいえ,no]"
-
-    dialog.addChoice /(yes|ok|OK|YES|はい)/, (res2) ->
-      res2.send 'わかりました！起動します！！！'
-      startInstance res2, instanceId
-
-    dialog.addChoice /(no|NO|いいえ)/, (res2) ->
-      res2.send 'わかりました。起動するのはやめます。'
-
+    input_instanceId res, dialog, conditions['起動']
 
 
   robot.respond /サーバ停止/i, (res) ->
@@ -67,34 +47,34 @@ module.exports = (robot) ->
       res.emote('タイムアウトです')
 
     # 対話形式スタート
-    input_instanceId res, dialog
+    input_instanceId res, dialog, conditions['停止']
 
-  input_instanceId = (res, dialog) ->
-    res.send "サーバの停止コマンドを受信しました。インスタンスIDを教えてください。[instanceId を入力] もしくは[やめる]"
+
+  input_instanceId = (res, dialog, condition) ->
+    res.send "サーバの#{condition.value}コマンドを受信しました。インスタンスIDを教えてください。[instanceId を入力] もしくは[やめる]"
 
     dialog.addChoice /やめる/, (res2)->
-      res2.send 'わかりました。停止するのはやめます。'
+      res2.send "わかりました。#{condition.value}するのはやめます。"
 
     dialog.addChoice /(.*)/, (res2)->
       instanceId = res2.match[1].split(' ')[1] # なんかバグってる気がする
-      confirm instanceId, res2, dialog
+      confirm instanceId, res2, dialog, condition
 
 
-  confirm = (instanceId, res, dialog)->
-    res.send "#{instanceId} のインスタンスを停止します。よろしいでしょうか？[はい,ok,yes,いいえ,no]"
+  confirm = (instanceId, res, dialog, condition)->
+    res.send "#{instanceId} のインスタンスを#{condition.value}します。よろしいでしょうか？[はい,ok,yes,いいえ,no]"
 
     dialog.addChoice /(yes|ok|OK|YES|はい)/, (res2) ->
-      res2.send 'わかりました！停止します！！！'
-      stopInstance res2, instanceId
+      res2.send "わかりました！#{condition.value}します！！！"
+
+      startInstance res2, instanceId if condition.key == 0
+      stopInstance res2, instanceId if condition.key == 1
 
     dialog.addChoice /(no|NO|いいえ)/, (res2) ->
-      res2.send 'わかりました。停止するのはやめます。'
-
-
+      res2.send "わかりました。#{condition.value}するのはやめます。"
 
 
   robot.respond /(サーバ情報)/i, (res) ->
-
     onSuccessed = (instances) ->
       for instance in instances
         message = "サーバ情報とってきました！\n"
@@ -147,11 +127,17 @@ module.exports = (robot) ->
     params = {
       InstanceIds: [instanceId]
     }
-    utils.startInstances(options, params).then
-    (instatnces) ->
-      res.send "#{instanceId} の起動を指示しました！",
-    (error) ->
+
+
+    onSuccessed = (instatnces) ->
+      res.send "#{instanceId} の起動を指示しました！"
+      return
+
+    onRejected = (error) ->
       res.send "#{instanceId} の起動はエラーになっちゃった! #{error.message}"
+      return
+
+    utils.startInstances(options, params).then onSuccessed, onRejected
 
 
   robot.respond /(.*)(の停止)/i, (res) ->
@@ -167,13 +153,15 @@ module.exports = (robot) ->
     params = {
       InstanceIds: [instanceId]
     }
-    utils.stopInstances(options, params).then
-    (instatnces) ->
+
+
+    utils.stopInstances(options, params)
+    .then (instatnces) ->
       res.send "#{instanceId} の停止を指示しました！"
-    (error) ->
+      return
+    ,(error) ->
       res.send "#{instanceId} の停止はエラーになっちゃった! #{error.message}"
-
-
+      return
 
 
 #    promise = utils.searchInstances(options,params);
