@@ -1,0 +1,10 @@
+{
+  "appenders": [
+    {
+      "type": "file",
+      "category": "main",
+      "filename": "./logs/learning_data.log",
+      "pattern": "-yyyy-MM-dd"
+    }
+  ]
+}

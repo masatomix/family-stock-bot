@@ -19,9 +19,13 @@
 # Author:
 #   Masatomi KINO <masatomix@ki-no.org>
 
-AWS = require 'aws-sdk';
-utils = require '../utils.js'
+AWS = require 'aws-sdk'
+utils = require '../utils'
+logger = require '../logger'
+
 Conversation = require 'hubot-conversation'
+config = require 'config'
+
 
 
 module.exports = (robot) ->
@@ -32,7 +36,59 @@ module.exports = (robot) ->
 
   conditions = {'起動': {'key': 0, 'value': '起動'}, '停止': {'key': 1, 'value': '停止'}}
 
-  robot.respond /サーバ起動/i, (res) ->
+  select_logic = (res) ->
+    #    console.dir res
+    text = res.match[0].split(' ')[1]
+    #  他の関数が答えてほしい文字の場合は何もしないで抜ける
+    if text == 'サーバ情報'
+      return
+
+    watson_config = config.watson;
+    watson = require('watson-developer-cloud');
+
+    nlc = watson.natural_language_classifier({
+      username: watson_config.username,
+      password: watson_config.password,
+      version: 'v1'
+    })
+
+    nlc.classify({
+      text: text,
+      classifier_id: watson_config.classifier_id
+    }, (err, response)->
+      if err
+        console.log('error:', err)
+      else
+        console.log("入力値: " + response.text);
+        confidence = response.classes[0].confidence;
+
+        header = ''
+#        header = "認識されました！"  if confidence > 0.95
+#        header = "決定的じゃないけどコレかも？"  if 0.90 < confidence <= 0.95
+#        header = "よく分からんけど一番近いのはコレ"  if confidence <= 0.90
+
+        if confidence > 0.95
+          start_or_stop res,response.classes[0]
+
+        else if  confidence > 0.90
+          header = "サーバの起動/停止を指示していますかね？\n「サーバを起動して」とか、もすこしわかりやすく言ってくれればやりますよ！"
+
+        else
+          header = "一応聞くけど、サーバ起動/停止についてのお願いでしょうか？\n「サーバを起動して」とか、もすこしわかりやすく言ってくれればやりますよ！"
+
+        message = ''
+#        message = "[" + response.classes[0].class_name + "]  信頼度: " + response.classes[0].confidence
+        res.send [header, message].join("\n")
+
+        log_message = '"' + response.text + '",' + response.classes[0].class_name + ",  信頼度: " + response.classes[0].confidence
+        logger.main.info(log_message);
+    )
+
+  start_or_stop = (res,clazz) ->
+    start_server res if clazz.class_name == '起動する'
+    stop_server res if clazz.class_name == '停止する'
+
+  start_server = (res) ->
     dialog = conversation.startDialog res, 60000; # timeout = 1min
     dialog.timeout = (res) ->
       res.emote('タイムアウトです')
@@ -40,8 +96,7 @@ module.exports = (robot) ->
     # 対話形式スタート
     input_instanceId res, dialog, conditions['起動']
 
-
-  robot.respond /サーバ停止/i, (res) ->
+  stop_server = (res) ->
     dialog = conversation.startDialog res, 60000; # timeout = 1min
     dialog.timeout = (res) ->
       res.emote('タイムアウトです')
@@ -51,9 +106,9 @@ module.exports = (robot) ->
 
 
   input_instanceId = (res, dialog, condition) ->
-    res.send "サーバの#{condition.value}コマンドを受信しました。インスタンスIDを教えてください。[instanceId を入力] もしくは[やめる]"
+    res.send "サーバの#{condition.value}ですね！インスタンスIDを教えてください。[instanceId を入力] もしくは[やめる,0]"
 
-    dialog.addChoice /やめる/, (res2)->
+    dialog.addChoice /(やめる|0)/, (res2)->
       res2.send "わかりました。#{condition.value}するのはやめます。"
 
     dialog.addChoice /(.*)/, (res2)->
@@ -62,19 +117,19 @@ module.exports = (robot) ->
 
 
   confirm = (instanceId, res, dialog, condition)->
-    res.send "#{instanceId} のインスタンスを#{condition.value}します。よろしいでしょうか？[はい,ok,yes,いいえ,no]"
+    res.send "#{instanceId} のインスタンスを#{condition.value}します。よろしいでしょうか？[はい,いいえ,ok,yes,no,1(ok),0(no)]"
 
-    dialog.addChoice /(yes|ok|OK|YES|はい)/, (res2) ->
+    dialog.addChoice /(yes|ok|OK|YES|はい|1)/, (res2) ->
       res2.send "わかりました！#{condition.value}します！！！"
 
       startInstance res2, instanceId if condition.key == 0
       stopInstance res2, instanceId if condition.key == 1
 
-    dialog.addChoice /(no|NO|いいえ)/, (res2) ->
+    dialog.addChoice /(no|NO|いいえ|0)/, (res2) ->
       res2.send "わかりました。#{condition.value}するのはやめます。"
 
 
-  robot.respond /(サーバ情報)/i, (res) ->
+  disp_server_info = (res) ->
     onSuccessed = (instances) ->
       for instance in instances
         message = "サーバ情報とってきました！\n"
@@ -94,9 +149,10 @@ module.exports = (robot) ->
       for instance in instances
         res.send instance.InstanceId
 
-
     #    条件 null ですべてのインスタンスを取ってきて、起動する。
     utils.searchInstances(options).then onSuccessed
+
+
 
   #    起動サンプル
   #    onSuccessed = (instances) ->
@@ -114,12 +170,19 @@ module.exports = (robot) ->
   #      console.log "startInstances end"
 
 
-  robot.respond /(.*)(の起動)/i, (res) ->
+  bot_start_instance = (res) ->
     text = res.match[0]
     instanceId = res.match[1].trim()
 
     console.log "#{text}"
     startInstance res, instanceId
+
+  bot_stop_instance = (res) ->
+    text = res.match[0]
+    instanceId = res.match[1].trim()
+
+    console.log "#{text}"
+    stopInstance res, instanceId
 
 
   startInstance = (res, instanceId) ->
@@ -127,7 +190,6 @@ module.exports = (robot) ->
     params = {
       InstanceIds: [instanceId]
     }
-
 
     onSuccessed = (instatnces) ->
       res.send "#{instanceId} の起動を指示しました！"
@@ -139,21 +201,11 @@ module.exports = (robot) ->
 
     utils.startInstances(options, params).then onSuccessed, onRejected
 
-
-  robot.respond /(.*)(の停止)/i, (res) ->
-    text = res.match[0]
-    instanceId = res.match[1].trim()
-
-    console.log "#{text}"
-    stopInstance res, instanceId
-
-
   stopInstance = (res, instanceId) ->
     console.log "#{instanceId}"
     params = {
       InstanceIds: [instanceId]
     }
-
 
     utils.stopInstances(options, params)
     .then (instatnces) ->
@@ -162,7 +214,6 @@ module.exports = (robot) ->
     ,(error) ->
       res.send "#{instanceId} の停止はエラーになっちゃった! #{error.message}"
       return
-
 
 #    promise = utils.searchInstances(options,params);
 #
@@ -185,3 +236,10 @@ module.exports = (robot) ->
 #      console.log "startInstances end"
 #
 #    promise.then onSuccessed,onRejected
+
+  robot.respond /(サーバ情報)/i, disp_server_info
+  robot.respond /(.*)(サーバ)(.*)/i, select_logic
+#  robot.respond /サーバ起動/i, start_server
+#  robot.respond /サーバ停止/i, stop_server
+#  robot.respond /(.*)(の起動)/i, bot_start_instance
+#  robot.respond /(.*)(の停止)/i, bot_stop_instance
