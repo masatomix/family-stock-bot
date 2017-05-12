@@ -3,5 +3,10 @@
     "gas_url": "https://script.google.com/xxxxxxxx/exec",
     "gas_document_url": "https://docs.google.com/spreadsheets/xxxxxxxx",
     "weather_url": "xxx"
+  },
+  "watson": {
+    "username": "xxxxxxxx",
+    "password": "xxxxxxxx",
+    "classifier_id": "xxxxxxxxx"
   }
 }
