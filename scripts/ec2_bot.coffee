@@ -10,11 +10,10 @@
 #
 #
 # Commands:
-#   zaikobot サーバ情報 - EC2のサーバ情報を返します。
-#   zaikobot <インスタンスID>の起動 - EC2の指定したインスタンスを起動します。
-#   zaikobot <インスタンスID>の停止 - EC2の指定したインスタンスを停止します。
-#   zaikobot サーバ起動 - 対話的にEC2インスタンスを起動します。
-#   zaikobot サーバ停止 - 対話的にEC2インスタンスを停止します。
+#   zaikobot サーバ情報 - インスタンス情報など、EC2のサーバ情報を返します。
+#   zaikobot サーバを起動する - EC2のサーバを起動します。あらかじめインスタンスIDを調べておいてください。
+#   zaikobot サーバを停止する - EC2のサーバを停止します。あらかじめインスタンスIDを調べておいてください。
+#   zaikobot サーバ* - ボットが理解できれば、EC2のサーバを起動・停止します。
 #
 # Author:
 #   Masatomi KINO <masatomix@ki-no.org>
@@ -68,12 +67,18 @@ module.exports = (robot) ->
 #        header = "よく分からんけど一番近いのはコレ"  if confidence <= 0.90
 
         if confidence > 0.95
-          start_or_stop res,response.classes[0]
-
+          if clazz.class_name == '起動する' or  clazz.class_name == '停止する'
+            console.log "0"
+            start_or_stop res,response.classes[0]
+          else
+            console.log "1"
+            header = "サーバの起動/停止を指示していますかね？\n「サーバを起動して」とか、もすこしわかりやすく言ってくれればやりますよ！"
         else if  confidence > 0.90
+          console.log "2"
           header = "サーバの起動/停止を指示していますかね？\n「サーバを起動して」とか、もすこしわかりやすく言ってくれればやりますよ！"
 
         else
+          console.log "3"
           header = "一応聞くけど、サーバ起動/停止についてのお願いでしょうか？\n「サーバを起動して」とか、もすこしわかりやすく言ってくれればやりますよ！"
 
         message = ''
@@ -87,6 +92,10 @@ module.exports = (robot) ->
   start_or_stop = (res,clazz) ->
     start_server res if clazz.class_name == '起動する'
     stop_server res if clazz.class_name == '停止する'
+#      起動しない、とかの場合
+    if clazz.class_name == '停止はしない' or  clazz.class_name == '起動はしない'
+      header = "サーバの起動/停止を指示していますかね？\n「サーバを起動して」とか、もすこしわかりやすく言ってくれればやりますよ！"
+      res.send [header].join("\n")
 
   start_server = (res) ->
     dialog = conversation.startDialog res, 60000; # timeout = 1min
