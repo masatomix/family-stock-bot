@@ -66,6 +66,7 @@ module.exports = (robot) ->
 #        header = "決定的じゃないけどコレかも？"  if 0.90 < confidence <= 0.95
 #        header = "よく分からんけど一番近いのはコレ"  if confidence <= 0.90
 
+        clazz = response.classes[0]
         if confidence > 0.95
           if clazz.class_name == '起動する' or  clazz.class_name == '停止する'
             console.log "0"
