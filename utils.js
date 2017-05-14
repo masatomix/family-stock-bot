@@ -1,6 +1,6 @@
 /**
  * Created by masatomix on 2017/04/24.
- * Masatomi KINO <kino@primebrains.co.jp>
+ * Masatomi KINO <masatomix@ki-no.org>
  */
 
 "use strict";
