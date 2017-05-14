@@ -66,6 +66,7 @@ module.exports = (robot) ->
 #        header = "決定的じゃないけどコレかも？"  if 0.90 < confidence <= 0.95
 #        header = "よく分からんけど一番近いのはコレ"  if confidence <= 0.90
 
+        clazz = response.classes[0]
         if confidence > 0.95
           if clazz.class_name == '起動する' or  clazz.class_name == '停止する'
             console.log "0"
@@ -86,7 +87,8 @@ module.exports = (robot) ->
         res.send [header, message].join("\n")
 
         log_message = '"' + response.text + '",' + response.classes[0].class_name + ",  信頼度: " + response.classes[0].confidence
-        logger.main.info(log_message);
+        logger.main.info log_message
+        console.log log_message
     )
 
   start_or_stop = (res,clazz) ->
