@@ -24,7 +24,7 @@ module.exports = (robot) ->
         urls = [
           "https://help.github.com/articles/closing-issues-via-commit-messages/",
           "http://qiita.com/maeda_t/items/d9ef98bf651bd491b16d"]
-        return "closes #20,#21" + '\n' + urls.join('\n')
+        return "closes #20,closes #21" + '\n' + urls.join('\n')
 
 
     'hello':
@@ -32,12 +32,18 @@ module.exports = (robot) ->
       'message': ()->
         return "Hello World."
 
+    'hubot reg':
+      'desc': 'どちらかに、完全一致。'
+      'message': ()->
+        return "\s(やめる|0)$"
 
 
-  robot.respond /template (.*)/i, (res) ->
-    console.log res.match[1].trim()
-    message = datas[res.match[1].trim()].message()
-    res.send message
+  robot.respond /template\s(.*)/i, (res) ->
+    key = res.match[1].trim()
+    console.log key
+    if datas[key]?   #NULLチェック
+      message = datas[key].message()
+      res.send message
 
   robot.respond /templates/i, (res) ->
     messages = []
