@@ -119,7 +119,7 @@ module.exports = (robot) ->
   input_instanceId = (res, dialog, condition) ->
     res.send "サーバの#{condition.value}ですね！インスタンスIDを教えてください。[instanceId を入力] もしくは[やめる,0]"
 
-    dialog.addChoice /(やめる|0)/, (res2)->
+    dialog.addChoice /\s(やめる|0)$/, (res2)->
       res2.send "わかりました。#{condition.value}するのはやめます。"
 
     dialog.addChoice /(.*)/, (res2)->
@@ -130,13 +130,13 @@ module.exports = (robot) ->
   confirm = (instanceId, res, dialog, condition)->
     res.send "#{instanceId} のインスタンスを#{condition.value}します。よろしいでしょうか？[はい,いいえ,ok,yes,no,1(ok),0(no)]"
 
-    dialog.addChoice /(yes|ok|OK|YES|はい|1)/, (res2) ->
+    dialog.addChoice /\s(yes|ok|OK|YES|はい|1)$/, (res2) ->
       res2.send "わかりました！#{condition.value}します！！！"
 
       startInstance res2, instanceId if condition.key == 0
       stopInstance res2, instanceId if condition.key == 1
 
-    dialog.addChoice /(no|NO|いいえ|0)/, (res2) ->
+    dialog.addChoice /\s(no|NO|いいえ|0)$/, (res2) ->
       res2.send "わかりました。#{condition.value}するのはやめます。"
 
 
