@@ -149,23 +149,23 @@ module.exports = (robot) ->
         message += "----\n"
         for tag in instance.Tags
           message += "#{tag.Key}: #{tag.Value}\n" if tag.Key is "Name"
-        message += "Platform: " + instance.Platform + '\n'
-        message += "InstanceType: " + instance.InstanceType + '\n'
-        message += "InstanceId: " + instance.InstanceId + '\n'
-        message += "PublicDnsName: " + instance.PublicDnsName + '\n'
-        message += "PublicIpAddress: " + instance.PublicIpAddress + '\n'
-        message += "PrivateDnsName: " + instance.PrivateDnsName + '\n'
-        message += "PrivateIpAddress: " + instance.PrivateIpAddress + '\n'
-        message += "State: " + instance.State.Name + '\n'
+        message += "Platform: #{instance.Platform}\n"
+        message += "InstanceType: #{instance.InstanceType}\n"
+        message += "InstanceId: #{instance.InstanceId}\n"
+        message += "PublicDnsName: #{instance.PublicDnsName}\n"   if instance.PublicDnsName?
+        message += "PublicIpAddress: #{instance.PublicIpAddress}\n"  if instance.PublicIpAddress?
+        message += "PrivateDnsName: #{instance.PrivateDnsName}\n"
+        message += "PrivateIpAddress: #{instance.PrivateIpAddress}\n"
+        message += "State: #{instance.State.Name}\n"
 
         message += "前回とおなじIPですね" + '\n' if instance.PublicIpAddress == robot.brain.get(key)
         message += "----\n"
 
         robot.brain.set(key, instance.PublicIpAddress)
-        res.send message
+        res.reply message
 
       for instance in instances
-        res.send instance.InstanceId
+        res.reply instance.InstanceId
 
     #    条件 null ですべてのインスタンスを取ってきて、起動する。
     utils.searchInstances(options).then onSuccessed
