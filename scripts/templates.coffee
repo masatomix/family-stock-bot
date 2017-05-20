@@ -35,7 +35,7 @@ module.exports = (robot) ->
     'hubot reg':
       'desc': 'どちらかに、完全一致。'
       'message': ()->
-        return "\s(やめる|0)$"
+        return "\\s(やめる|0)$"
 
 
   robot.respond /template\s(.*)/i, (res) ->
